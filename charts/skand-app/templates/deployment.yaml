@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "skand-app.fullname" . }}-app
+  labels:
+    app: {{ include "skand-app.fullname" . }}-app
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "skand-app.fullname" . }}-app
+  template:
+    metadata:
+      labels:
+        app: {{ include "skand-app.fullname" . }}-app
+      {{- if .Values.daprSidecar.enabled }}
+      annotations:
+        {{- toYaml .Values.daprSidecar.annotations | nindent 8 }}
+      {{- end }}
+    spec:
+      containers:
+      - name: {{ .Release.Name }}
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        {{- with .Values.image.command }}
+        command:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        envFrom:
+          {{- if .Values.configmap }}
+          - configMapRef:
+              name: {{ include "skand-app.fullname" . }}-configmap
+          {{- end }}
+          {{- if .Values.secret }}
+          - secretRef:
+              name: {{ include "skand-app.fullname" . }}-secret
+          {{- end }}
+      {{- if .Values.nvidiaGPU.enabled }}
+      nodeSelector:
+        nvidia.com/gpu.present: "true"
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      {{- end }}
+      imagePullSecrets:
+        - name: {{ include "skand-app.fullname" . }}-aws-ecr-image-pull-secret

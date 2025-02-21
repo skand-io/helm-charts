@@ -1,0 +1,92 @@
+{{- $context := dict "fullname" (include "skand-app.fullname" .) }}
+{{- if .Values.daprPubsub.enabled }}
+# Sepc:
+#   https://docs.dapr.io/reference/components-reference/supported-pubsub/
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: {{ include "skand-app.fullname" . }}-dapr-pubsub
+spec:
+  type: {{ .Values.daprPubsub.type }}
+  version: {{ .Values.daprPubsub.version }}
+  metadata:
+  {{- range .Values.daprPubsub.metadata }}
+    - name: {{ .name }}
+      {{- if .secretKeyRef }}
+      secretKeyRef:
+        {{- if .secretKeyRef.name }}
+        name: {{ .secretKeyRef.name }}
+        {{- else }}
+        name: {{ $fullName }}-dapr-pubsub-secret
+        {{- end }}
+        key: {{ .secretKeyRef.key }}
+      {{- end }}
+      value: {{ include "processTemplateValue" (dict "value" .value "context" $context) }}
+  {{- end }}
+{{- end }}
+################################################################################
+# A pubsub infra setup                                                         #
+################################################################################
+{{- if and
+    .Values.daprPubsub.enabled
+    .Values.daprPubsub.deployment.enabled
+}}
+---
+# This internal pub/sub service only provides a shim infrastructure and a pub/sub protocol for asynchronous processing.
+# It doesn't persist data or ensure high availability; the application should handle retries.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app:  {{ include "skand-app.fullname" . }}-pubsub-infra
+  name:  {{ include "skand-app.fullname" . }}-pubsub-infra
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "skand-app.fullname" . }}-pubsub-infra
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: {{ include "skand-app.fullname" . }}-pubsub-infra
+    spec:
+      containers:
+      - image: {{ .Values.daprPubsub.deployment.image }}
+        name: {{ .Values.daprPubsub.deployment.name }}
+        ports:
+        {{- toYaml .Values.daprPubsub.deployment.ports | nindent 8 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "skand-app.fullname" . }}-pubsub-infra-service
+spec:
+  selector:
+    app: {{ include "skand-app.fullname" . }}-pubsub-infra
+  type: ClusterIP
+  ports:
+  {{- range .Values.daprPubsub.deployment.ports }}
+    - name: {{ .name }}
+      port: {{ .containerPort }}
+      protocol: {{ .protocol }}
+  {{- end }}
+---
+{{- end }}
+################################################################################
+# A pubsub infra secret                                                        #
+################################################################################
+{{- if and 
+  .Values.daprPubsub.secret
+  .Values.daprPubsub.secret.enabled
+}}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "skand.fullname" . }}-dapr-pubsub-secret
+type: Opaque
+data:
+  {{- range $key, $value := .Values.daprPubsub.secret.data }}
+  {{ $key }}: {{ $value | b64enc }}
+  {{- end }}
+{{- end }}

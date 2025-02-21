@@ -1,0 +1,12 @@
+{{- if .Values.daprActorStateStore.enabled }}
+apiVersion: dapr.io/v1alpha1
+kind: Component
+metadata:
+  name: {{ include "skand-app.fullname" . }}-dapr-actorstatestore
+
+spec:
+  type: {{ .Values.daprActorStateStore.type }}
+  version: {{ .Values.daprActorStateStore.version }}
+  metadata:
+  {{- toYaml .Values.daprActorStateStore.metadata | nindent 2 }}
+{{- end }}

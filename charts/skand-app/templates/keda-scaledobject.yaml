@@ -1,0 +1,56 @@
+{{- $context := dict "fullname" (include "skand-app.fullname" .) }}
+{{- if .Values.keda.enabled }}
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ include "skand-app.fullname" . }}-scaledobject
+  namespace: default
+  annotations:
+    autoscaling.keda.sh/paused: "false"                      # Optional. Use to pause autoscaling of objects explicitly
+spec:
+  # Basic settings
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "skand-app.fullname" . }}-app
+
+  pollingInterval: {{ .Values.keda.pollingInterval | default 30 }}
+  cooldownPeriod: {{ .Values.keda.cooldownPeriod | default 300 }}
+
+  # Validate idleReplicaCount if provided
+  {{- if .Values.keda.idleReplicaCount }}
+    {{- if lt .Values.keda.idleReplicaCount .Values.keda.minReplicaCount }}
+    idleReplicaCount: {{ .Values.keda.idleReplicaCount }}
+    {{- else }}
+    {{ fail (printf "[keda] idleReplicaCount (%d) must be less than minReplicaCount (%d)" .Values.keda.idleReplicaCount .Values.keda.minReplicaCount) }}
+    {{- end }}
+  {{- end }}
+
+  minReplicaCount: {{ .Values.keda.minReplicaCount | default 1 }}
+  maxReplicaCount: {{ .Values.keda.maxReplicaCount | default 100 }}
+
+  # Triggers
+  {{- if .Values.keda.triggers }}
+  triggers:
+    {{- range .Values.keda.triggers }}
+    - type: {{ .type }}
+      metadata:
+        {{- range $key, $value := .metadata }}
+        {{ $key }}: {{ include "processTemplateValue" (dict "value" $value "context" $context) }}
+        {{- end }}
+    {{- end }}
+  {{- else }}
+  {{ fail "[keda] triggers must not be empty" }}
+  {{- end }}
+
+  advanced:
+    restoreToOriginalReplicaCount: true # Should scaling down
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          stabilizationWindowSeconds: {{ .Values.keda.scaleDownStabilizationWindowSeconds }}
+          policies:
+          - type: Percent
+            value: 100
+            periodSeconds: 15
+{{- end }}

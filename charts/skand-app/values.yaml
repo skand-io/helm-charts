@@ -1,0 +1,124 @@
+nameOverride: ""
+fullnameOverride: ""
+
+################################################################################
+# Workload                                                                     #
+################################################################################
+# Number of replicas for the application
+replicaCount: 1
+
+# Image configuration
+image:
+  # Note:
+  #   it is crucial to ensure that the CPU platform of your Docker containers
+  #   matches the CPU platform of the host machine. If there is a mismatch, 
+  #   you may encounter errors such as:
+  #     exec /usr/local/bin/yarn: exec format error
+  repository: ""
+  tag: latest
+  pullPolicy: Always
+  command: []
+
+nvidiaGPU: false
+
+################################################################################
+# Network                                                                      #
+################################################################################
+# Kubernetes service configuration
+service:
+  enabled: true
+  type: ClusterIP
+  port: 8080
+  targetPort: null  # It will refer to the port in K8s if targetPort is null.
+  nodePort: 30000
+  # Enabled an app to receive public network traffic on a cluster
+  # For example:
+  #   In Mac, microk8s runs in multipass, so it should be enabled for local e2e test
+  externalIPs: []
+
+################################################################################
+# Config                                                                       #
+################################################################################
+# Insensitive environment variables
+configmap: {}
+
+# Sensitive environment variables
+secret: {}
+# Configuration for image pull secret
+imagePullSecret:
+  awsECR: ""
+
+################################################################################
+# Dapar intergration with the application                                      #
+################################################################################
+# Configuration for Dapr sidecar integration
+#   The Dapr infra will detect the pod annotations and inject a Dapr sidecar there.
+#   Ref: https://docs.dapr.io/reference/arguments-annotations-overview/
+daprSidecar:
+  enabled: true
+  annotations:
+    dapr.io/enabled: "true"
+    dapr.io/app-id: "backend"
+    dapr.io/app-protocol: "grpc"
+    dapr.io/app-port: "5002"
+
+# Configuration for Dapr pubsub integration
+#   It allows the application to use a pubsub abstraction interface independent of any pubsub infrastructure.
+#   Ref: https://docs.dapr.io/reference/components-reference/supported-pubsub/
+#
+#   The Dapr team recommends using RabbitMQ because it can remove the queue message, but Redis can't.
+#   https://github.com/dapr/components-contrib/issues/3100#issuecomment-1699519089
+daprPubsub:
+  enabled: true
+  type: pubsub.rabbitmq
+  version: v1
+  metadata:
+  - name: connectionString
+    value: "amqp://guest:guest@{{ .fullname }}-pubsub-infra-service.default.svc.cluster.local:5672"
+  # Message queue size management
+  - name: maxLen
+    value: 1000
+  # Message queue persistence management
+  - name: durable
+    value: "false"
+  - name: deletedWhenUnused
+    value: "false"
+  - name: autoAck
+    value: "false"
+  # Subscription behavior
+  - name: exchangeKind
+    value: topic
+  deployment:
+    enabled: true
+    image: "rabbitmq:3.13.4-management-alpine"
+    name: "rabbitmq"
+    ports:
+    - name: amqp
+      containerPort: 5672
+      protocol: TCP
+    - name: http
+      containerPort: 15672
+      protocol: TCP
+
+# Configuration for Dapr workflow when it needs a store to presist its state
+daprActorStateStore:
+  enabled: false
+  type: state.mongodb
+  version: v1
+  metadata: {}
+
+################################################################################
+# Keda event-driven scaling                                                    #
+################################################################################
+# Configuration for Event Driven Autoscaling
+keda:
+  enabled: false
+
+################################################################################
+# local infra services                                                         #
+################################################################################
+localMinio:
+  enabled: false
+
+localMongo:
+  enabled: false

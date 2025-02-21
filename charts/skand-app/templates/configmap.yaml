@@ -1,0 +1,9 @@
+{{- $fullName := include "skand-app.fullname" . }}
+{{- with .Values.configmap }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ $fullName }}-configmap
+data:
+  {{- toYaml . | nindent 2 }}
+{{- end }}

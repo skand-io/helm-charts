@@ -1,0 +1,22 @@
+{{- if .Values.service.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "skand-app.fullname" . }}-service
+spec:
+  selector:
+    app: {{ include "skand-app.fullname" . }}-app
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      {{- if .Values.service.targetPort }}
+      targetPort: {{ .Values.service.targetPort }}
+      {{- end }}
+      {{- if eq .Values.service.type "NodePort" }}
+      nodePort: {{ .Values.service.nodePort }}
+      {{- end }}
+  {{- if .Values.service.externalIPs }}
+  externalIPs:
+  {{- toYaml .Values.service.externalIPs | nindent 2 }}
+  {{- end }}
+{{- end }}
