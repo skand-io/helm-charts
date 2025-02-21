@@ -1,0 +1,13 @@
+apiVersion: v1
+entries:
+  skand-app:
+  - apiVersion: v2
+    appVersion: "1.0"
+    created: "2025-02-21T05:24:35.87637866Z"
+    description: Application
+    digest: 36ed1e65058722698822fe615c130edb7f18e1f00cada8e76e05ff1272bb09ad
+    name: skand-app
+    urls:
+    - https://github.com/skand-io/helm-charts/releases/download/skand-app-0.0.1/skand-app-0.0.1.tgz
+    version: 0.0.1
+generated: "2025-02-21T05:24:35.876383539Z"
