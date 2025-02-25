@@ -1,3 +1,4 @@
+{{- $fullName := include "skand-app.fullname" . }}
 {{- $context := dict "fullname" (include "skand-app.fullname" .) }}
 {{- if .Values.daprPubsub.enabled }}
 # Sepc:

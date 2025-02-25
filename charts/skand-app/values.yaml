@@ -19,7 +19,8 @@ image:
   pullPolicy: Always
   command: []
 
-nvidiaGPU: false
+nvidiaGPU:
+  enabled: false
 
 ################################################################################
 # Network                                                                      #
