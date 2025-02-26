@@ -1,18 +1,18 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "skand-app.fullname" . }}-app
+  name: {{ include "skandapp.fullname" . }}-app
   labels:
-    app: {{ include "skand-app.fullname" . }}-app
+    app: {{ include "skandapp.fullname" . }}-app
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: {{ include "skand-app.fullname" . }}-app
+      app: {{ include "skandapp.fullname" . }}-app
   template:
     metadata:
       labels:
-        app: {{ include "skand-app.fullname" . }}-app
+        app: {{ include "skandapp.fullname" . }}-app
       {{- if .Values.daprSidecar.enabled }}
       annotations:
         {{- toYaml .Values.daprSidecar.annotations | nindent 8 }}
@@ -29,11 +29,11 @@ spec:
         envFrom:
           {{- if .Values.configmap }}
           - configMapRef:
-              name: {{ include "skand-app.fullname" . }}-configmap
+              name: {{ include "skandapp.fullname" . }}-configmap
           {{- end }}
           {{- if .Values.secret }}
           - secretRef:
-              name: {{ include "skand-app.fullname" . }}-secret
+              name: {{ include "skandapp.fullname" . }}-secret
           {{- end }}
       {{- if .Values.nvidiaGPU.enabled }}
       nodeSelector:
@@ -43,5 +43,7 @@ spec:
           operator: Exists
           effect: NoSchedule
       {{- end }}
+      {{- if .Values.imagePullSecret }}
       imagePullSecrets:
-        - name: {{ include "skand-app.fullname" . }}-aws-ecr-image-pull-secret
+        - name: {{ include "skandapp.fullname" . }}-image-pull-secret
+      {{- end }}

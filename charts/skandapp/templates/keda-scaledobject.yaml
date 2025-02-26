@@ -1,9 +1,9 @@
-{{- $context := dict "fullname" (include "skand-app.fullname" .) }}
+{{- $context := dict "fullname" (include "skandapp.fullname" .) }}
 {{- if .Values.keda.enabled }}
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
-  name: {{ include "skand-app.fullname" . }}-scaledobject
+  name: {{ include "skandapp.fullname" . }}-scaledobject
   namespace: default
   annotations:
     autoscaling.keda.sh/paused: "false"                      # Optional. Use to pause autoscaling of objects explicitly
@@ -12,7 +12,7 @@ spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: {{ include "skand-app.fullname" . }}-app
+    name: {{ include "skandapp.fullname" . }}-app
 
   pollingInterval: {{ .Values.keda.pollingInterval | default 30 }}
   cooldownPeriod: {{ .Values.keda.cooldownPeriod | default 300 }}

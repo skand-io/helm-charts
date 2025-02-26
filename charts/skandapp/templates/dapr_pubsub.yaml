@@ -1,12 +1,12 @@
-{{- $fullName := include "skand-app.fullname" . }}
-{{- $context := dict "fullname" (include "skand-app.fullname" .) }}
+{{- $fullName := include "skandapp.fullname" . }}
+{{- $context := dict "fullname" (include "skandapp.fullname" .) }}
 {{- if .Values.daprPubsub.enabled }}
 # Sepc:
 #   https://docs.dapr.io/reference/components-reference/supported-pubsub/
 apiVersion: dapr.io/v1alpha1
 kind: Component
 metadata:
-  name: {{ include "skand-app.fullname" . }}-dapr-pubsub
+  name: {{ include "skandapp.fullname" . }}-dapr-pubsub
 spec:
   type: {{ .Values.daprPubsub.type }}
   version: {{ .Values.daprPubsub.version }}
@@ -39,18 +39,18 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app:  {{ include "skand-app.fullname" . }}-pubsub-infra
-  name:  {{ include "skand-app.fullname" . }}-pubsub-infra
+    app:  {{ include "skandapp.fullname" . }}-pubsub-infra
+  name:  {{ include "skandapp.fullname" . }}-pubsub-infra
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: {{ include "skand-app.fullname" . }}-pubsub-infra
+      app: {{ include "skandapp.fullname" . }}-pubsub-infra
   strategy: {}
   template:
     metadata:
       labels:
-        app: {{ include "skand-app.fullname" . }}-pubsub-infra
+        app: {{ include "skandapp.fullname" . }}-pubsub-infra
     spec:
       containers:
       - image: {{ .Values.daprPubsub.deployment.image }}
@@ -61,10 +61,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "skand-app.fullname" . }}-pubsub-infra-service
+  name: {{ include "skandapp.fullname" . }}-pubsub-infra-service
 spec:
   selector:
-    app: {{ include "skand-app.fullname" . }}-pubsub-infra
+    app: {{ include "skandapp.fullname" . }}-pubsub-infra
   type: ClusterIP
   ports:
   {{- range .Values.daprPubsub.deployment.ports }}

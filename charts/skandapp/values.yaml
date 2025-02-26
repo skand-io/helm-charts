@@ -45,9 +45,9 @@ configmap: {}
 
 # Sensitive environment variables
 secret: {}
+
 # Configuration for image pull secret
-imagePullSecret:
-  awsECR: ""
+imagePullSecret: ""
 
 ################################################################################
 # Dapar intergration with the application                                      #

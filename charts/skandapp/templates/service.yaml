@@ -2,10 +2,10 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "skand-app.fullname" . }}-service
+  name: {{ include "skandapp.fullname" . }}-service
 spec:
   selector:
-    app: {{ include "skand-app.fullname" . }}-app
+    app: {{ include "skandapp.fullname" . }}-app
   type: {{ .Values.service.type }}
   ports:
     - port: {{ .Values.service.port }}
