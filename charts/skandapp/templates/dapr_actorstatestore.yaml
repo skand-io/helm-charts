@@ -2,7 +2,7 @@
 apiVersion: dapr.io/v1alpha1
 kind: Component
 metadata:
-  name: {{ include "skand-app.fullname" . }}-dapr-actorstatestore
+  name: {{ include "skandapp.fullname" . }}-dapr-actorstatestore
 
 spec:
   type: {{ .Values.daprActorStateStore.type }}
