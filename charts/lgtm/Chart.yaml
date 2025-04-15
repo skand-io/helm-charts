@@ -1,0 +1,32 @@
+apiVersion: v2
+name: lgtm
+description: Application
+version: 0.0.1
+appVersion: "1.0"
+
+dependencies:
+  - name: grafana
+    alias: grafana
+    condition: grafana.enabled
+    repository: https://grafana.github.io/helm-charts
+    version: "^7.3.9"
+  - name: loki-distributed
+    alias: loki
+    condition: loki.enabled
+    repository: "https://grafana.github.io/helm-charts"
+    version: "^0.79.0"
+  - name: mimir-distributed
+    alias: mimir
+    condition: mimir.enabled
+    repository: "https://grafana.github.io/helm-charts"
+    version: "^5.3.0"
+  - name: tempo-distributed
+    alias: tempo
+    condition: tempo.enabled
+    repository: "https://grafana.github.io/helm-charts"
+    version: "^1.9.2"
+  - name: opentelemetry-collector
+    alias: collector
+    condition: collector.enabled
+    version: "0.120.2"
+    repository: "https://open-telemetry.github.io/opentelemetry-helm-charts"

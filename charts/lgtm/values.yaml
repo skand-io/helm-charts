@@ -1,0 +1,310 @@
+################################################################################
+# lgtm                                                                         #
+################################################################################
+grafana:
+  enabled: true
+  # -- Grafana data sources config. Connects to all three by default
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      # -- Datasources linked to the Grafana instance. Override if you disable any components.
+      datasources:
+        # https://grafana.com/docs/grafana/latest/datasources/loki/#provision-the-loki-data-source
+        - name: Loki
+          uid: loki
+          type: loki
+          url: http://{{ .Release.Name }}-loki-gateway
+          isDefault: false
+        # https://grafana.com/docs/grafana/latest/datasources/prometheus/#provision-the-data-source
+        - name: Mimir
+          uid: prom
+          type: prometheus
+          url: http://{{ .Release.Name }}-mimir-nginx/prometheus
+          isDefault: true
+        # https://grafana.com/docs/grafana/latest/datasources/tempo/configure-tempo-data-source/#provision-the-data-source
+        - name: Tempo
+          uid: tempo
+          type: tempo
+          url: http://{{ .Release.Name }}-tempo-query-frontend:3100
+          isDefault: false
+          jsonData:
+            tracesToLogsV2:
+              datasourceUid: loki
+            lokiSearch:
+              datasourceUid: loki
+            tracesToMetrics:
+              datasourceUid: prom
+            serviceMap:
+              datasourceUid: prom
+
+loki:
+  enabled: true
+  ingester:
+    replicas: 2
+    maxUnavailable: 1
+  structuredConfig:
+    storage_config:
+      aws:
+        access_key_id: grafana-mimir
+        bucketnames: mimir-ruler
+        endpoint: lgtm-minio.observability.svc:9000
+        insecure: true
+        secret_access_key: supersecret
+      boltdb_shipper:
+        shared_store: s3
+  gateway:
+    nginxConfig: # hotfix, https://github.com/grafana/helm-charts/pull/3109/files
+      file: |
+        worker_processes  5;  ## Default: 1
+        error_log  /dev/stderr;
+        pid        /tmp/nginx.pid;
+        worker_rlimit_nofile 8192;
+
+        events {
+          worker_connections  4096;  ## Default: 1024
+        }
+
+        http {
+          client_body_temp_path /tmp/client_temp;
+          proxy_temp_path       /tmp/proxy_temp_path;
+          fastcgi_temp_path     /tmp/fastcgi_temp;
+          uwsgi_temp_path       /tmp/uwsgi_temp;
+          scgi_temp_path        /tmp/scgi_temp;
+
+          proxy_http_version    1.1;
+
+          default_type application/octet-stream;
+          log_format   {{ .Values.gateway.nginxConfig.logFormat }}
+
+          {{- if .Values.gateway.verboseLogging }}
+          access_log   /dev/stderr  main;
+          {{- else }}
+
+          map $status $loggable {
+            ~^[23]  0;
+            default 1;
+          }
+          access_log   /dev/stderr  main  if=$loggable;
+          {{- end }}
+
+          sendfile     on;
+          tcp_nopush   on;
+          {{- if .Values.gateway.nginxConfig.resolver }}
+          resolver {{ .Values.gateway.nginxConfig.resolver }};
+          {{- else }}
+          resolver {{ .Values.global.dnsService }}.{{ .Values.global.dnsNamespace }}.svc.{{ .Values.global.clusterDomain }};
+          {{- end }}
+
+          {{- with .Values.gateway.nginxConfig.httpSnippet }}
+          {{ . | nindent 2 }}
+          {{- end }}
+
+          server {
+            listen             8080;
+
+            {{- if .Values.gateway.basicAuth.enabled }}
+            auth_basic           "Loki";
+            auth_basic_user_file /etc/nginx/secrets/.htpasswd;
+            {{- end }}
+
+            location = / {
+              return 200 'OK';
+              auth_basic off;
+              access_log off;
+            }
+
+            location = /api/prom/push {
+              set $api_prom_push_backend http://{{ include "loki.distributorFullname" . }}.{{ .Release.Namespace }}.svc.{{ .Values.global.clusterDomain }};
+              proxy_pass       $api_prom_push_backend:3100$request_uri;
+              proxy_http_version 1.1;
+            }
+
+            location = /api/prom/tail {
+              set $api_prom_tail_backend http://{{ include "loki.querierFullname" . }}.{{ .Release.Namespace }}.svc.{{ .Values.global.clusterDomain }};
+              proxy_pass       $api_prom_tail_backend:3100$request_uri;
+              proxy_set_header Upgrade $http_upgrade;
+              proxy_set_header Connection "upgrade";
+              proxy_http_version 1.1;
+            }
+
+            # Ruler
+            location ~ /prometheus/api/v1/alerts.* {
+              proxy_pass       http://{{ include "loki.rulerFullname" . }}.{{ .Release.Namespace }}.svc.{{ .Values.global.clusterDomain }}:3100$request_uri;
+            }
+            location ~ /prometheus/api/v1/rules.* {
+              proxy_pass       http://{{ include "loki.rulerFullname" . }}.{{ .Release.Namespace }}.svc.{{ .Values.global.clusterDomain }}:3100$request_uri;
+            }
+            location ~ /api/prom/rules.* {
+              proxy_pass       http://{{ include "loki.rulerFullname" . }}.{{ .Release.Namespace }}.svc.{{ .Values.global.clusterDomain }}:3100$request_uri;
+            }
+            location ~ /api/prom/alerts.* {
+              proxy_pass       http://{{ include "loki.rulerFullname" . }}.{{ .Release.Namespace }}.svc.{{ .Values.global.clusterDomain }}:3100$request_uri;
+            }
+
+            location ~ /api/prom/.* {
+              set $api_prom_backend http://{{ include "loki.queryFrontendFullname" . }}-headless.{{ .Release.Namespace }}.svc.{{ .Values.global.clusterDomain }};
+              proxy_pass       $api_prom_backend:3100$request_uri;
+              proxy_http_version 1.1;
+            }
+
+            location = /loki/api/v1/push {
+              set $loki_api_v1_push_backend http://{{ include "loki.distributorFullname" . }}.{{ .Release.Namespace }}.svc.{{ .Values.global.clusterDomain }};
+              proxy_pass       $loki_api_v1_push_backend:3100$request_uri;
+              proxy_http_version 1.1;
+            }
+
+            location = /otlp/v1/logs {
+              set $loki_api_v1_push_backend http://{{ include "loki.distributorFullname" . }}.{{ .Release.Namespace }}.svc.{{ .Values.global.clusterDomain }};
+              proxy_pass       $loki_api_v1_push_backend:3100$request_uri;
+              proxy_http_version 1.1;
+            }
+
+            location = /loki/api/v1/tail {
+              set $loki_api_v1_tail_backend http://{{ include "loki.querierFullname" . }}.{{ .Release.Namespace }}.svc.{{ .Values.global.clusterDomain }};
+              proxy_pass       $loki_api_v1_tail_backend:3100$request_uri;
+              proxy_set_header Upgrade $http_upgrade;
+              proxy_set_header Connection "upgrade";
+              proxy_http_version 1.1;
+            }
+
+            location ~ /loki/api/.* {
+              set $loki_api_backend http://{{ include "loki.queryFrontendFullname" . }}-headless.{{ .Release.Namespace }}.svc.{{ .Values.global.clusterDomain }};
+              proxy_pass       $loki_api_backend:3100$request_uri;
+              proxy_http_version 1.1;
+            }
+
+            {{- with .Values.gateway.nginxConfig.serverSnippet }}
+            {{ . | nindent 4 }}
+            {{- end }}
+          }
+        }
+
+mimir:
+  enabled: true
+  alertmanager:
+    resources:
+      requests:
+        cpu: 20m
+  compactor:
+    resources:
+      requests:
+        cpu: 20m
+  distributor:
+    resources:
+      requests:
+        cpu: 20m
+  ingester:
+    replicas: 2
+    zoneAwareReplication:
+      enabled: false
+    resources:
+      requests:
+        cpu: 20m
+  overrides_exporter:
+    resources:
+      requests:
+        cpu: 20m
+  querier:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 20m
+  query_frontend:
+    resources:
+      requests:
+        cpu: 20m
+  query_scheduler:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 20m
+  ruler:
+    resources:
+      requests:
+        cpu: 20m
+  store_gateway:
+    zoneAwareReplication:
+      enabled: false
+    resources:
+      requests:
+        cpu: 20m
+  minio:
+    resources:
+      requests:
+        cpu: 20m
+  rollout_operator:
+    resources:
+      requests:
+        cpu: 20m
+
+tempo:
+  enabled: true
+  ingester:
+    replicas: 2
+  gateway:
+    enabled: true
+  traces:
+    otlp:
+      http:
+        enabled: true
+
+################################################################################
+# opentelemetry collector                                                      #
+################################################################################
+collector:
+  enabled: true
+  mode: deployment
+  image:
+    repository: otel/opentelemetry-collector-k8s
+  command:
+    name: otelcol-k8s
+  config:
+    receivers:
+      otlp:
+        protocols:
+          grpc: {}
+          http: {}
+    processors:
+      # Batch Processor:
+      #   * Doc: https://github.com/open-telemetry/opentelemetry-collector/tree/main/processor/batchprocessor
+      batch: {}
+
+    exporters:
+      # OTLP HTTP Exporter:
+      #   Doc: https://github.com/open-telemetry/opentelemetry-collector/tree/main/exporter/otlphttpexporter
+      otlphttp/loki:
+        endpoint: http://lgtm-loki-gateway/otlp
+      otlp/loki:
+        endpoint: lgtm-loki-distributor.observability.svc.cluster.local:9095
+        tls:
+          insecure: true
+      otlphttp/mimir:
+        endpoint: http://lgtm-mimir-nginx.observability.svc.cluster.local/otlp
+      otlphttp/tempo:
+        endpoint: http://lgtm-tempo-gateway/otlp
+
+    service:
+      pipelines:
+        logs:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [otlphttp/loki]
+        metrics:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [otlphttp/mimir]
+        traces:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [otlphttp/tempo]
+  ports:
+    otlp:
+      enabled: true
+    otlp-http:
+      enabled: true
+    jaeger-compact:
+      enabled: false
+    jaeger-thrift:
+      enabled: false
+    jaeger-grpc:
+      enabled: false
