@@ -1,0 +1,10 @@
+apiVersion: v2
+name: azure-keyvault
+description: >
+  A standalone Helm chart that installs a shared SecretProviderClass
+  resource to enable CSI integration with Azure Key Vault.
+  This chart is intended to be deployed once per cluster.
+
+type: application
+version: 0.1.0
+appVersion: "1.16.0"

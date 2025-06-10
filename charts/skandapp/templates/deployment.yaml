@@ -35,6 +35,18 @@ spec:
           - secretRef:
               name: {{ include "skandapp.fullname" . }}-secret
           {{- end }}
+          {{- if .Values.azureKeyvault.enabled }}
+          - secretRef:
+              name: {{ .Values.azureKeyvault.secret.name }}
+          {{- end }}
+        {{- if .Values.azureKeyvault.enabled }}
+        volumeMounts:
+          {{- if .Values.azureKeyvault.enabled }}
+          - name: {{ .Values.azureKeyvault.secret.name }}-volume
+            mountPath: /mnt/azure-keyvault-secrets
+            readOnly: true
+          {{- end }}
+        {{- end }}
       {{- if .Values.nvidiaGPU.enabled }}
       nodeSelector:
         nvidia.com/gpu.present: "true"
@@ -46,4 +58,10 @@ spec:
       {{- if .Values.imagePullSecret }}
       imagePullSecrets:
         - name: {{ include "skandapp.fullname" . }}-image-pull-secret
+      {{- end }}
+    volumes:
+      {{- if .Values.azureKeyvault.enabled }}
+      - name: azure-keyvault-secretprovider
+        secretProviderClass:
+          name: {{ .Values.azureKeyvault.secretProviderClass.name }}
       {{- end }}
