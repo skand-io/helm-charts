@@ -1,0 +1,11 @@
+fullnameOverride: "skand-azure-keyvault"
+nameOverride: ""
+
+parameters:
+  userAssignedIdentityID: ""
+  keyvaultName: "SkandDevelopmentKeyVault"
+  tenantId: ""
+  objects:
+    array:
+      - objectName: paperTrailPort
+        key: PAPERTRAIL_PORT

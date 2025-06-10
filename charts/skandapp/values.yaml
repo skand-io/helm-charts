@@ -109,6 +109,16 @@ daprActorStateStore:
   metadata: {}
 
 ################################################################################
+# Azure Key Vault                                                              #
+################################################################################
+azureKeyvault:
+  enabled: false
+  secretProviderClass:
+    name: skand-azure-keyvault-secretprovider
+  secret:
+    name: skand-azure-keyvault-secret
+
+################################################################################
 # Keda event-driven scaling                                                    #
 ################################################################################
 # Configuration for Event Driven Autoscaling
