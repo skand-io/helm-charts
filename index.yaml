@@ -22,6 +22,15 @@ entries:
   skandapp:
   - apiVersion: v2
     appVersion: "1.0"
+    created: "2025-06-10T05:43:32.125397239Z"
+    description: Application
+    digest: 0fe1956ffac635de1eb8c3d1b328e897ca33a1da2c8909272dbe6b796a50965e
+    name: skandapp
+    urls:
+    - https://github.com/skand-io/helm-charts/releases/download/skandapp-0.1.0/skandapp-0.1.0.tgz
+    version: 0.1.0
+  - apiVersion: v2
+    appVersion: "1.0"
     created: "2025-02-26T05:50:25.94874662Z"
     description: Application
     digest: 6056c3c277910fd01138411c37a359745a01144ef6ee687f70e8e75f049fdb45
@@ -29,4 +38,4 @@ entries:
     urls:
     - https://github.com/skand-io/helm-charts/releases/download/skandapp-0.0.1/skandapp-0.0.1.tgz
     version: 0.0.1
-generated: "2025-02-26T05:50:25.948754725Z"
+generated: "2025-06-10T05:43:32.125406527Z"
