@@ -10,6 +10,13 @@ HELM_RELEASE_NAME=azure-keyvault
 # Azure
 RESOURCE_GROUP_NAME ?= ${ENV}
 
+# Functions
+define get_subscription_id
+$(shell az account list \
+	--query "[?contains(name, '$(ENV)')].id" \
+	--output tsv)
+endef
+
 ################################################################################
 # Commands                                                                     #
 ################################################################################
