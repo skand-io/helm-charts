@@ -7,5 +7,29 @@ parameters:
   tenantId: ""
   objects:
     array:
+      # - objectName: dbURI
+      #   key: DB_URI
+      # - objectName: chargebeeApiSite
+      #   key: CHARGEBEE_API_SITE
+      # - objectName: chargebeeBasicAuthPassword
+      #   key: CHARGEBEE_BASIC_AUTH_PASSWORD
+      # - objectName: chargebeeBasicAuthUsername
+      #   key: CHARGEBEE_BASIC_AUTH_USERNAME
+      # - objectName: credentialEncryptionKey
+      #   key: CREDENTIAL_ENCRYPTION_KEY
+      # - objectName: jwtSecretKey
+      #   key: JWT_SECRET_KEY
+      # - objectName: paperTrailEnable
+      #   key: PAPERTRAIL_ENABLE
+      # - objectName: paperTrailHost
+      #   key: PAPERTRAIL_HOST
       - objectName: paperTrailPort
         key: PAPERTRAIL_PORT
+      # - objectName: posthogApiHost
+      #   key: POSTHOG_API_HOST
+      # - objectName: s3PresignUrlAwsSecretAccessKey
+      #   key: S3_PRESIGN_URL_AWS_SECRET_ACCESS_KEY
+      # - objectName: sendgridApiKey
+      #   key: SENDGRID_API_KEY
+      # - objectName: splitApiKey
+      #   key: SPLIT_API_KEY
